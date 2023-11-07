@@ -6,6 +6,7 @@ import (
 	"github.com/cativovo/go-demo-auth/pkg/auth"
 	"github.com/cativovo/go-demo-auth/pkg/user"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 type Server struct {
@@ -15,8 +16,12 @@ type Server struct {
 }
 
 func NewServer(a auth.Service, u user.Service) *Server {
+	router := chi.NewRouter()
+
+	router.Use(middleware.Logger)
+
 	server := &Server{
-		router:      chi.NewRouter(),
+		router:      router,
 		authService: a,
 		userService: u,
 	}

@@ -44,11 +44,6 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// if res.StatusCode == http.StatusBadRequest {
-	// 	fmt.Fprintln(w, "Invalid email/password")
-	// 	return
-	// }
-
 	fmt.Fprintln(w, "registered")
 }
 
