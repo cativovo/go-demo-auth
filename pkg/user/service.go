@@ -24,7 +24,7 @@ type User struct {
 type Credentials struct {
 	Email    string `validate:"required,email" json:"Foo"`
 	Name     string `validate:"required"`
-	Password string `validate:"len=6"`
+	Password string `validate:"required,min=6"`
 }
 
 type Service interface {
