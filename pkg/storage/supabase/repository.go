@@ -1,10 +1,8 @@
 package supabase
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -12,7 +10,7 @@ import (
 	"os"
 
 	"github.com/cativovo/go-demo-auth/pkg/auth"
-	"github.com/cativovo/go-demo-auth/pkg/user"
+	userService "github.com/cativovo/go-demo-auth/pkg/user"
 )
 
 type SupabaseRepository struct {
@@ -21,11 +19,16 @@ type SupabaseRepository struct {
 	baseUrl    string
 }
 
-type headers map[string]string
+type user struct {
+	Id string `json:"id"`
+}
 
-type response struct {
-	*http.Response
-	Data map[string]any
+type token struct {
+	User         user   `json:"user"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int    `json:"expires_in"`
+	ExpiresAt    int    `json:"expires_at"`
 }
 
 type credentials struct {
@@ -53,28 +56,37 @@ func (s *SupabaseRepository) Register(email, password string) (auth.Token, error
 		return auth.Token{}, auth.ErrSomethingWentWrong
 	}
 
-	res, err := s.fetch("POST", "/signup", nil, bytes.NewBuffer(payload))
+	req, err := s.newRequest("POST", "/signup", bytes.NewBuffer(payload))
 	if err != nil {
-		log.Println("Supabase Register:", err)
+		log.Println("Supabase Register newRequest:", err)
+		return auth.Token{}, auth.ErrSomethingWentWrong
+	}
+
+	res, err := s.httpClient.Do(req)
+	if err != nil {
+		log.Println("Supabase Register Do:", err)
 		return auth.Token{}, auth.ErrSomethingWentWrong
 	}
 
 	if res.StatusCode == http.StatusBadRequest {
-		return auth.Token{}, user.ErrEmailAlreadyUsed
+		return auth.Token{}, userService.ErrEmailAlreadyUsed
 	}
 
-	if res.StatusCode > http.StatusBadRequest {
-		log.Printf("Supabase Register status code (%d)", res.StatusCode)
+	t := token{}
+
+	if err := json.NewDecoder(res.Body).Decode(&t); err != nil {
+		log.Println("Supabase Register Decode:", err)
 		return auth.Token{}, auth.ErrSomethingWentWrong
 	}
 
-	token, err := s.getToken(res)
-	if err != nil {
-		log.Println("Supabase Register getToken:", err)
-		return auth.Token{}, auth.ErrSomethingWentWrong
-	}
-
-	return token, nil
+	return auth.Token{
+			UserId:       t.User.Id,
+			AccessToken:  t.AccessToken,
+			RefreshToken: t.RefreshToken,
+			ExpiresIn:    t.ExpiresIn,
+			ExpiresAt:    t.ExpiresAt,
+		},
+		nil
 }
 
 func (s *SupabaseRepository) Login(email, password string) (auth.Token, error) {
@@ -82,13 +94,22 @@ func (s *SupabaseRepository) Login(email, password string) (auth.Token, error) {
 		Email:    email,
 		Password: password,
 	}
+
 	payload, err := json.Marshal(c)
 	if err != nil {
+		log.Println("Supabase Login:", err)
 		return auth.Token{}, auth.ErrSomethingWentWrong
 	}
 
-	res, err := s.fetch("POST", "/token?grant_type=password", nil, bytes.NewBuffer(payload))
+	req, err := s.newRequest("POST", "/token?grant_type=password", bytes.NewBuffer(payload))
 	if err != nil {
+		log.Println("Supabase Login newRequest:", err)
+		return auth.Token{}, auth.ErrSomethingWentWrong
+	}
+
+	res, err := s.httpClient.Do(req)
+	if err != nil {
+		log.Println("Supabase Login Do:", err)
 		return auth.Token{}, auth.ErrSomethingWentWrong
 	}
 
@@ -96,24 +117,34 @@ func (s *SupabaseRepository) Login(email, password string) (auth.Token, error) {
 		return auth.Token{}, auth.ErrInvalidCredentials
 	}
 
-	if res.StatusCode > http.StatusBadRequest {
+	t := token{}
+
+	if err := json.NewDecoder(res.Body).Decode(&t); err != nil {
+		log.Println("Supabase Login Decode:", err)
 		return auth.Token{}, auth.ErrSomethingWentWrong
 	}
 
-	token, err := s.getToken(res)
-	if err != nil {
-		return auth.Token{}, auth.ErrSomethingWentWrong
-	}
-
-	return token, nil
+	return auth.Token{
+			UserId:       t.User.Id,
+			AccessToken:  t.AccessToken,
+			RefreshToken: t.RefreshToken,
+			ExpiresIn:    t.ExpiresIn,
+			ExpiresAt:    t.ExpiresAt,
+		},
+		nil
 }
 
 func (s *SupabaseRepository) Logout(token string) error {
-	headers := headers{
-		"Authorization": fmt.Sprintf("Bearer %s", token),
-	}
-	res, err := s.fetch("POST", "/logout?scope=local", headers, nil)
+	req, err := s.newRequest("POST", "/logout?scope=local", nil)
 	if err != nil {
+		log.Println("Supabase Logout newRequest", err)
+		return auth.ErrSomethingWentWrong
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+
+	res, err := s.httpClient.Do(req)
+	if err != nil {
+		log.Println("Supabase Logout Do", err)
 		return auth.ErrSomethingWentWrong
 	}
 
@@ -125,7 +156,7 @@ func (s *SupabaseRepository) Logout(token string) error {
 }
 
 // helpers
-func (s *SupabaseRepository) fetch(method string, path string, h headers, body io.Reader) (*response, error) {
+func (s *SupabaseRepository) newRequest(method string, path string, body io.Reader) (*http.Request, error) {
 	req, err := http.NewRequest(method, s.baseUrl+path, body)
 	if err != nil {
 		return nil, err
@@ -134,76 +165,5 @@ func (s *SupabaseRepository) fetch(method string, path string, h headers, body i
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("apiKey", s.apiKey)
 
-	for k, v := range h {
-		req.Header.Add(k, v)
-	}
-
-	res, err := s.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	scanner := bufio.NewScanner(res.Body)
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-
-	var r string
-
-	for scanner.Scan() {
-		r += scanner.Text()
-	}
-
-	data := map[string]any{}
-
-	if err := json.Unmarshal([]byte(r), &data); err != nil {
-		return nil, err
-	}
-
-	return &response{
-			Data:     data,
-			Response: res,
-		},
-		nil
-}
-
-func (s *SupabaseRepository) getToken(res *response) (auth.Token, error) {
-	accessToken, ok := res.Data["access_token"].(string)
-	if !ok {
-		return auth.Token{}, errors.New("access_token field not found")
-	}
-
-	refreshToken, ok := res.Data["refresh_token"].(string)
-	if !ok {
-		return auth.Token{}, errors.New("refresh_token field not found")
-	}
-
-	expiresIn, ok := res.Data["expires_in"].(float64)
-	if !ok {
-		return auth.Token{}, errors.New("expires_in field not found")
-	}
-
-	expiresAt, ok := res.Data["expires_at"].(float64)
-	if !ok {
-		return auth.Token{}, errors.New("expires_at field not found")
-	}
-
-	var userId string
-	if user, ok := res.Data["user"].(map[string]any); ok {
-		if id, ok := user["id"].(string); ok {
-			userId = id
-		} else {
-			return auth.Token{}, auth.ErrSomethingWentWrong
-		}
-	}
-
-	return auth.Token{
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
-			ExpiresAt:    expiresAt,
-			ExpiresIn:    expiresIn,
-			UserId:       userId,
-		},
-		nil
+	return req, nil
 }

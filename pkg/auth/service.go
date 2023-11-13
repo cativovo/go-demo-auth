@@ -14,8 +14,8 @@ type Token struct {
 	UserId       string
 	AccessToken  string
 	RefreshToken string
-	ExpiresIn    float64
-	ExpiresAt    float64
+	ExpiresIn    int
+	ExpiresAt    int
 }
 
 type Service interface {
