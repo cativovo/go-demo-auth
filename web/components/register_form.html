@@ -1,0 +1,67 @@
+<form hx-post="/register">
+  <div class="flex flex-col gap-2 p-4" hx-include="this">
+    <div
+      id="email-field"
+      hx-select="#email-field"
+      hx-target="this"
+      hx-swap="morphdom"
+    >
+      <input
+        required
+        type="text"
+        name="email"
+        class="border {{with and .ErrEmail .Email -}} border-red-400 {{else}} border-black {{- end -}}"
+        value="{{.Email}}"
+        hx-post="/validate-register"
+        hx-trigger="keyup changed delay:500ms"
+      />
+      <!-- prettier-ignore -->
+      {{- $ErrEmail := .ErrEmail -}}
+      {{- with (and $ErrEmail .Email) -}}
+      <span class="text-red-500">{{$ErrEmail}}</span>
+      {{- end -}}
+    </div>
+    <div
+      id="password-field"
+      hx-select="#password-field"
+      hx-target="this"
+      hx-swap="morphdom"
+    >
+      <input
+        required
+        type="password"
+        name="password"
+        class="border {{with and .ErrPassword .Password -}} border-red-400 {{else}} border-black {{- end -}}"
+        value="{{.Password}}"
+        hx-post="/validate-register"
+        hx-trigger="keyup changed delay:500ms"
+      />
+      <!-- prettier-ignore -->
+      {{- $ErrPassword := .ErrPassword -}}
+      {{- with (and $ErrPassword .Password) -}}
+      <span class="text-red-500">{{$ErrPassword}}</span>
+      {{- end -}}
+    </div>
+    <div>
+      <input
+        required
+        type="text"
+        name="name"
+        class="border border-black"
+        value="{{.Name}}"
+        hx-post="/validate-register"
+        hx-trigger="keyup changed delay:800ms"
+        hx-swap="none"
+      />
+    </div>
+  </div>
+  <!-- prettier-ignore -->
+  <button
+    hx-swap-oob='outerHTML:button[type="submit"]'
+    type="submit"
+    class="border border-black bg-blue-300 disabled:bg-gray-600 disabled:cursor-not-allowed"
+    {{- if not .AreValuesValid}}disabled{{end -}}
+  >
+    Register
+  </button>
+</form>

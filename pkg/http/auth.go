@@ -27,14 +27,14 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 	_, err := s.userService.Register(userCredentials)
 	if err != nil {
 		switch {
-		case errors.Is(err, user.ErrEmailAlreadyUsed):
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintln(w, "Email is already used")
-		case errors.Is(err, user.ErrPasswordTooShort):
-			fmt.Fprintln(w, "Password is too short")
-		case errors.Is(err, user.ErrFieldRequired):
-			message := fmt.Sprintf("%s", err)
-			fmt.Fprintln(w, message)
+		// case errors.Is(err, user.ErrEmailAlreadyUsed):
+		// 	w.WriteHeader(http.StatusBadRequest)
+		// 	fmt.Fprintln(w, "Email is already used")
+		// case errors.Is(err, user.ErrPasswordTooShort):
+		// 	fmt.Fprintln(w, "Password is too short")
+		// case errors.Is(err, user.ErrFieldRequired):
+		// 	message := fmt.Sprintf("%s", err)
+		// 	fmt.Fprintln(w, message)
 		default:
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)

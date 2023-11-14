@@ -48,3 +48,16 @@ func (r *PostgresRepository) AddUser(u user.User) (user.User, error) {
 		Email: newUser.Email,
 	}, nil
 }
+
+func (r *PostgresRepository) GetUserByEmail(email string) (user.User, error) {
+	u, err := r.queries.GetUserByEmail(r.ctx, email)
+	if err != nil {
+		return user.User{}, err
+	}
+
+	return user.User{
+		Id:    u.ID,
+		Email: u.Email,
+		Name:  u.Name,
+	}, nil
+}

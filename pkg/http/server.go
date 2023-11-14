@@ -19,6 +19,8 @@ func NewServer(a auth.Service, u user.Service) *Server {
 	router := chi.NewRouter()
 
 	router.Use(middleware.Logger)
+	router.Use(setHtmlContentType)
+	router.Use(middleware.Compress(5, "text/html", "text/css"))
 
 	server := &Server{
 		router:      router,
@@ -27,10 +29,20 @@ func NewServer(a auth.Service, u user.Service) *Server {
 	}
 
 	server.registerAuthRoutes()
+	server.registerValidateRoutes()
+	server.registerPages()
 
 	return server
 }
 
 func (s *Server) ListenAndServe(addr string) {
 	http.ListenAndServe(addr, s.router)
+}
+
+func setHtmlContentType(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "text/html")
+
+		next.ServeHTTP(w, r)
+	})
 }
