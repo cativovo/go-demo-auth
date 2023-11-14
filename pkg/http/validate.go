@@ -9,10 +9,7 @@ import (
 	"github.com/cativovo/go-demo-auth/pkg/user"
 )
 
-var (
-	registerFormTmpl *template.Template = template.Must(template.ParseFiles("web/components/register_form.html"))
-	errorAlertTmpl   *template.Template = template.Must(template.ParseFiles("web/components/error_alert.html"))
-)
+var registerFormTmpl *template.Template = template.Must(template.ParseFiles("web/components/register_form.html"))
 
 func (s *Server) registerValidateRoutes() {
 	s.router.Post("/validate-register", s.handleValidateRegister)

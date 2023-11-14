@@ -80,7 +80,7 @@ func (s *service) Register(c Credentials) (auth.Token, []error) {
 
 	token, err := s.repository.Register(c.Email, c.Password)
 	if err != nil {
-		log.Println("UserService Register:", err)
+		log.Println("UserService Register repository.Register:", err)
 		return auth.Token{}, append(errors, err)
 	}
 
@@ -89,9 +89,13 @@ func (s *service) Register(c Credentials) (auth.Token, []error) {
 		Email: c.Email,
 		Name:  c.Name,
 	}
-	s.repository.AddUser(user)
 
-	return auth.Token{}, nil
+	if _, err := s.repository.AddUser(user); err != nil {
+		log.Println("UserService Register AddUser:", err)
+		return auth.Token{}, append(errors, err)
+	}
+
+	return token, nil
 }
 
 func (s *service) ValidateCredentials(c Credentials) validator.ValidationErrors {

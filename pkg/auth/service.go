@@ -2,7 +2,6 @@ package auth
 
 import (
 	"errors"
-	"net/http"
 )
 
 var (
@@ -29,26 +28,19 @@ type Repository interface {
 }
 
 type service struct {
-	r Repository
-}
-
-type headers map[string]string
-
-type response struct {
-	*http.Response
-	Data map[string]any
+	repository Repository
 }
 
 func NewAuthService(r Repository) Service {
 	return &service{
-		r: r,
+		repository: r,
 	}
 }
 
 func (s *service) Login(email, password string) (Token, error) {
-	return s.r.Login(email, password)
+	return s.repository.Login(email, password)
 }
 
 func (s *service) Logout(token string) error {
-	return s.r.Logout(token)
+	return s.repository.Logout(token)
 }

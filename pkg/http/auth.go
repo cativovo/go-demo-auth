@@ -3,7 +3,6 @@ package http
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/cativovo/go-demo-auth/pkg/auth"
@@ -23,48 +22,47 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 		Name:     r.PostFormValue("name"),
 	}
 
-	// token, err
-	_, err := s.userService.Register(userCredentials)
-	if err != nil {
-		switch {
-		// case errors.Is(err, user.ErrEmailAlreadyUsed):
-		// 	w.WriteHeader(http.StatusBadRequest)
-		// 	fmt.Fprintln(w, "Email is already used")
-		// case errors.Is(err, user.ErrPasswordTooShort):
-		// 	fmt.Fprintln(w, "Password is too short")
-		// case errors.Is(err, user.ErrFieldRequired):
-		// 	message := fmt.Sprintf("%s", err)
-		// 	fmt.Fprintln(w, message)
-		default:
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintln(w, "oops something went wrong")
-		}
-
+	token, errors := s.userService.Register(userCredentials)
+	if errors != nil {
+		// TODO: handle each errors
+		errorAlertTmpl.Execute(w, map[string]any{
+			"Message": "Something went wrong...",
+		})
 		return
 	}
 
-	fmt.Fprintln(w, "registered")
+	accessTokenCookie, refreshTokenCookie := createTokenCookie(token)
+
+	w.Header().Add("HX-Trigger", "redirect-to-account")
+	http.SetCookie(w, &accessTokenCookie)
+	http.SetCookie(w, &refreshTokenCookie)
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	email := r.PostFormValue("email")
 	password := r.PostFormValue("password")
 
-	// token, err
-	_, err := s.authService.Login(email, password)
+	token, err := s.authService.Login(email, password)
 	if err != nil {
 		switch {
 		case errors.Is(err, auth.ErrInvalidCredentials):
-			fmt.Fprintln(w, "Invalid username/password")
+			errorAlertTmpl.Execute(w, map[string]any{
+				"Message": "Invalid username/password",
+			})
+			return
 		default:
-			fmt.Fprintln(w, "oops something went wrong")
+			errorAlertTmpl.Execute(w, map[string]any{
+				"Message": "Something went wrong",
+			})
+			return
 		}
-
-		return
 	}
 
-	fmt.Fprintln(w, "logged in")
+	accessTokenCookie, refreshTokenCookie := createTokenCookie(token)
+
+	w.Header().Add("HX-Trigger", "redirect-to-account")
+	http.SetCookie(w, &accessTokenCookie)
+	http.SetCookie(w, &refreshTokenCookie)
 }
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
@@ -80,4 +78,24 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 
 	// clear cookie
 	// redirect to login page
+}
+
+func createTokenCookie(t auth.Token) (http.Cookie, http.Cookie) {
+	// https://www.alexedwards.net/blog/working-with-cookies-in-go
+	accessTokenCookie := http.Cookie{
+		Name:     "access_token",
+		Value:    t.AccessToken,
+		MaxAge:   t.ExpiresIn,
+		HttpOnly: true,
+		Secure:   true,
+	}
+
+	refreshTokenCookie := http.Cookie{
+		Name:     "refresh_token",
+		Value:    t.RefreshToken,
+		HttpOnly: true,
+		Secure:   true,
+	}
+
+	return accessTokenCookie, refreshTokenCookie
 }
