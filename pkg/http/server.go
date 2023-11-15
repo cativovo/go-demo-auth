@@ -19,7 +19,7 @@ func NewServer(a auth.Service, u user.Service) *Server {
 	router := chi.NewRouter()
 
 	router.Use(middleware.Logger)
-	// router.Use(setHtmlContentTypeMiddleware)
+	router.Use(setHtmlContentTypeMiddleware)
 	router.Use(middleware.Compress(5, "text/html", "text/css"))
 
 	server := &Server{

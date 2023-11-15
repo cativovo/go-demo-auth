@@ -88,14 +88,28 @@ func (s *Server) accountPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("Cache-Control", "no-store, private")
-	accountPageTmpl.Execute(w, map[string]any{
+	data := map[string]any{
 		"UserId": user.Id,
 		"Name":   user.Name,
-	})
+	}
+
+	w.Header().Add("Cache-Control", "no-store, private")
+
+	if r.Header.Get("HX-Boosted") == "true" {
+		accountPageTmpl.ExecuteTemplate(w, "layout", data)
+		return
+	}
+
+	accountPageTmpl.Execute(w, data)
 }
 
 func (s *Server) infoPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Cache-Control", "private, max-age=30")
+
+	if r.Header.Get("HX-Boosted") == "true" {
+		infoPageTmpl.ExecuteTemplate(w, "layout", nil)
+		return
+	}
+
 	infoPageTmpl.Execute(w, nil)
 }
