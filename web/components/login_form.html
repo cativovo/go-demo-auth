@@ -1,5 +1,5 @@
 {{- block "content" . -}}
-<form hx-post="/login" hx-swap="none">
+<form hx-post="/auth/login" hx-swap="none">
   <div class="flex flex-col gap-2 p-4" hx-include="this">
     <div>
       <input required type="email" name="email" class="border border-black" />
@@ -17,7 +17,7 @@
 </form>
 <div
   class="hidden"
-  hx-get="/account"
+  hx-get="/"
   hx-replace-url="true"
   hx-trigger="redirect-to-account from:body"
   hx-target="body"

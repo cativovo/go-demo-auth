@@ -33,12 +33,14 @@ type Service interface {
 	Register(u Credentials) (auth.Token, []error)
 	ValidateCredentials(c Credentials) validator.ValidationErrors
 	GetUserByEmail(email string) (User, error)
+	GetUserById(id string) (User, error)
 }
 
 type Repository interface {
 	AddUser(u User) (User, error)
 	Register(email, password string) (auth.Token, error)
 	GetUserByEmail(email string) (User, error)
+	GetUserById(id string) (User, error)
 }
 
 type service struct {
@@ -109,6 +111,15 @@ func (s *service) ValidateCredentials(c Credentials) validator.ValidationErrors 
 
 func (s *service) GetUserByEmail(email string) (User, error) {
 	u, err := s.repository.GetUserByEmail(email)
+	if err != nil {
+		return User{}, ErrUserNotFound
+	}
+
+	return u, nil
+}
+
+func (s *service) GetUserById(id string) (User, error) {
+	u, err := s.repository.GetUserById(id)
 	if err != nil {
 		return User{}, ErrUserNotFound
 	}

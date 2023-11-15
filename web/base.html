@@ -7,6 +7,7 @@
     <script src="https://unpkg.com/htmx.org@1.9.8"></script>
     <script src="https://unpkg.com/htmx.org/dist/ext/morphdom-swap.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/morphdom@2.6.1/dist/morphdom-umd.min.js"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/preload.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       @keyframes fadeInOut {
@@ -30,8 +31,8 @@
       }
     </style>
   </head>
-  <body hx-ext="morphdom-swap">
-    <div id="alert" class="hidden"></div>
-    {{- template "content" . -}}
+  <body hx-ext="morphdom-swap, preload">
+    <!-- prettier-ignore -->
+    {{- template "layout" . -}}
   </body>
 </html>

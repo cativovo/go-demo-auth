@@ -61,3 +61,16 @@ func (r *PostgresRepository) GetUserByEmail(email string) (user.User, error) {
 		Name:  u.Name,
 	}, nil
 }
+
+func (r *PostgresRepository) GetUserById(id string) (user.User, error) {
+	u, err := r.queries.GetUserById(r.ctx, id)
+	if err != nil {
+		return user.User{}, err
+	}
+
+	return user.User{
+		Id:    u.ID,
+		Email: u.Email,
+		Name:  u.Name,
+	}, nil
+}

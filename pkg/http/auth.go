@@ -7,12 +7,15 @@ import (
 
 	"github.com/cativovo/go-demo-auth/pkg/auth"
 	"github.com/cativovo/go-demo-auth/pkg/user"
+	"github.com/go-chi/chi/v5"
 )
 
 func (s *Server) registerAuthRoutes() {
-	s.router.Post("/register", s.handleRegister)
-	s.router.Post("/login", s.handleLogin)
-	s.router.Post("/logout", s.handleLogout)
+	s.router.Route("/auth", func(r chi.Router) {
+		r.Post("/register", s.handleRegister)
+		r.Post("/login", s.handleLogin)
+		r.Post("/logout", s.handleLogout)
+	})
 }
 
 func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
@@ -88,6 +91,7 @@ func createTokenCookie(t auth.Token) (http.Cookie, http.Cookie) {
 		MaxAge:   t.ExpiresIn,
 		HttpOnly: true,
 		Secure:   true,
+		Path:     "/",
 	}
 
 	refreshTokenCookie := http.Cookie{
@@ -95,6 +99,7 @@ func createTokenCookie(t auth.Token) (http.Cookie, http.Cookie) {
 		Value:    t.RefreshToken,
 		HttpOnly: true,
 		Secure:   true,
+		Path:     "/",
 	}
 
 	return accessTokenCookie, refreshTokenCookie

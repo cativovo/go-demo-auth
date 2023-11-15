@@ -155,6 +155,31 @@ func (s *SupabaseRepository) Logout(token string) error {
 	return nil
 }
 
+func (s *SupabaseRepository) GetUserId(token string) (string, error) {
+	req, err := s.newRequest("GET", "/user", nil)
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+
+	if err != nil {
+		log.Println("Supabase GetUserId newRequest", err)
+		return "", auth.ErrSomethingWentWrong
+	}
+
+	res, err := s.httpClient.Do(req)
+	if err != nil {
+		log.Println("Supabase GetUserId Do", err)
+		return "", auth.ErrSomethingWentWrong
+	}
+
+	u := user{}
+
+	if err := json.NewDecoder(res.Body).Decode(&u); err != nil {
+		log.Println("Supabase GetUserId Do", err)
+		return "", auth.ErrSomethingWentWrong
+	}
+
+	return u.Id, nil
+}
+
 // helpers
 func (s *SupabaseRepository) newRequest(method string, path string, body io.Reader) (*http.Request, error) {
 	req, err := http.NewRequest(method, s.baseUrl+path, body)

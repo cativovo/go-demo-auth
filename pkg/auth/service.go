@@ -20,11 +20,13 @@ type Token struct {
 type Service interface {
 	Login(email, password string) (Token, error)
 	Logout(token string) error
+	GetUserId(token string) (string, error)
 }
 
 type Repository interface {
 	Login(email, password string) (Token, error)
 	Logout(token string) error
+	GetUserId(token string) (string, error)
 }
 
 type service struct {
@@ -43,4 +45,8 @@ func (s *service) Login(email, password string) (Token, error) {
 
 func (s *service) Logout(token string) error {
 	return s.repository.Logout(token)
+}
+
+func (s *service) GetUserId(token string) (string, error) {
+	return s.repository.GetUserId(token)
 }
