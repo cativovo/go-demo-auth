@@ -14,7 +14,7 @@ func (s *Server) registerAuthRoutes() {
 	s.router.Route("/auth", func(r chi.Router) {
 		r.Post("/register", s.handleRegister)
 		r.Post("/login", s.handleLogin)
-		r.Post("/logout", s.handleLogout)
+		r.Get("/logout", s.handleLogout)
 	})
 }
 
@@ -36,9 +36,9 @@ func (s *Server) handleRegister(w http.ResponseWriter, r *http.Request) {
 
 	accessTokenCookie, refreshTokenCookie := createTokenCookie(token)
 
-	w.Header().Add("HX-Trigger", "redirect-to-account")
-	http.SetCookie(w, &accessTokenCookie)
-	http.SetCookie(w, &refreshTokenCookie)
+	w.Header().Add("HX-Location", "/")
+	http.SetCookie(w, accessTokenCookie)
+	http.SetCookie(w, refreshTokenCookie)
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -63,44 +63,19 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 
 	accessTokenCookie, refreshTokenCookie := createTokenCookie(token)
 
-	w.Header().Add("HX-Trigger", "redirect-to-account")
-	http.SetCookie(w, &accessTokenCookie)
-	http.SetCookie(w, &refreshTokenCookie)
+	w.Header().Add("HX-Location", "/")
+	http.SetCookie(w, accessTokenCookie)
+	http.SetCookie(w, refreshTokenCookie)
 }
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
-	jwt, err := r.Cookie("jwt")
-	if err != nil {
-		return
+	if token, getCookieErr := r.Cookie("access_token"); getCookieErr == nil {
+		if logoutErr := s.authService.Logout(token.Value); logoutErr != nil {
+			fmt.Fprintln(w, logoutErr)
+		}
 	}
 
-	if err := s.authService.Logout(jwt.Value); err != nil {
-		fmt.Fprintln(w, "ooo")
-		return
-	}
-
-	// clear cookie
-	// redirect to login page
-}
-
-func createTokenCookie(t auth.Token) (http.Cookie, http.Cookie) {
-	// https://www.alexedwards.net/blog/working-with-cookies-in-go
-	accessTokenCookie := http.Cookie{
-		Name:     "access_token",
-		Value:    t.AccessToken,
-		MaxAge:   t.ExpiresIn,
-		HttpOnly: true,
-		Secure:   true,
-		Path:     "/",
-	}
-
-	refreshTokenCookie := http.Cookie{
-		Name:     "refresh_token",
-		Value:    t.RefreshToken,
-		HttpOnly: true,
-		Secure:   true,
-		Path:     "/",
-	}
-
-	return accessTokenCookie, refreshTokenCookie
+	w.Header().Add("Location", "/auth-page/login")
+	clearCookie(w, r)
+	w.WriteHeader(http.StatusFound)
 }

@@ -68,10 +68,12 @@ func (s *Server) registerPages() {
 }
 
 func (s *Server) loginPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Cache-Control", "no-store, public")
 	loginPageTmpl.Execute(w, nil)
 }
 
 func (s *Server) registerPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Cache-Control", "no-store, public")
 	registerPageTmpl.Execute(w, nil)
 }
 
@@ -86,7 +88,7 @@ func (s *Server) accountPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("Cache-Control", "private, max-age=30")
+	w.Header().Add("Cache-Control", "no-store, private")
 	accountPageTmpl.Execute(w, map[string]any{
 		"UserId": user.Id,
 		"Name":   user.Name,
